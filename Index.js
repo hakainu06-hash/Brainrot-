@@ -1,73 +1,63 @@
-const express = require("express");
 const http = require("http");
 const WebSocket = require("ws");
 
 const PORT = process.env.PORT || 3000;
 
-// Taille max du stockage (évite explosion RAM)
-const MAX_STORAGE = 10000; // derniers messages
-
-// Stockage en mémoire (buffer circulaire)
+// Stockage limité (évite crash RAM)
+const MAX_STORAGE = 10000;
 let storage = [];
 
-const app = express();
-const server = http.createServer(app);
+// Serveur HTTP obligatoire pour Railway
+const server = http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end("WebSocket running");
+});
 
 const wss = new WebSocket.Server({
   server,
-  perMessageDeflate: false, // IMPORTANT pour performance
-  maxPayload: 1024 * 1024 // 1MB max par message
+  perMessageDeflate: false
 });
 
-let clientCount = 0;
-
-// Fonction pour stocker efficacement
-function storeMessage(data) {
+// Stocker messages
+function store(data) {
   storage.push(data);
   if (storage.length > MAX_STORAGE) {
-    storage.shift(); // supprime le plus ancien
+    storage.shift();
   }
 }
 
-// Broadcast rapide
+// Broadcast
 function broadcast(data, exclude) {
-  for (const client of wss.clients) {
+  wss.clients.forEach(client => {
     if (client !== exclude && client.readyState === WebSocket.OPEN) {
       client.send(data);
     }
-  }
+  });
 }
 
-// Connexions
+let clients = 0;
+
 wss.on("connection", (ws) => {
-  clientCount++;
-  console.log("Client connected:", clientCount);
+  clients++;
+  console.log("Client connected:", clients);
 
   ws.on("message", (message) => {
     const data = message.toString();
 
-    // Commande spéciale pour récupérer les données
+    // Récupérer stockage
     if (data === "GET_STORAGE") {
       ws.send(JSON.stringify(storage));
       return;
     }
 
-    // Stocker
-    storeMessage(data);
-
-    // Broadcast aux autres
+    store(data);
     broadcast(data, ws);
   });
 
   ws.on("close", () => {
-    clientCount--;
-    console.log("Client disconnected:", clientCount);
+    clients--;
+    console.log("Client disconnected:", clients);
   });
-});
-
-// Route HTTP (pour vérifier Railway)
-app.get("/", (req, res) => {
-  res.send("High-load WebSocket running");
 });
 
 server.listen(PORT, () => {
