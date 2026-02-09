@@ -3,14 +3,13 @@ const WebSocket = require("ws");
 
 const PORT = process.env.PORT || 3000;
 
-// Stockage limité (évite crash RAM)
-const MAX_STORAGE = 10000;
-let storage = [];
+// File de messages (queue)
+let queue = [];
+const MAX_QUEUE = 50000; // sécurité mémoire
 
-// Serveur HTTP obligatoire pour Railway
 const server = http.createServer((req, res) => {
   res.writeHead(200);
-  res.end("WebSocket running");
+  res.end("WS Queue running");
 });
 
 const wss = new WebSocket.Server({
@@ -18,48 +17,43 @@ const wss = new WebSocket.Server({
   perMessageDeflate: false
 });
 
-// Stocker messages
-function store(data) {
-  storage.push(data);
-  if (storage.length > MAX_STORAGE) {
-    storage.shift();
-  }
-}
-
-// Broadcast
-function broadcast(data, exclude) {
-  wss.clients.forEach(client => {
-    if (client !== exclude && client.readyState === WebSocket.OPEN) {
-      client.send(data);
-    }
-  });
-}
-
-let clients = 0;
-
 wss.on("connection", (ws) => {
-  clients++;
-  console.log("Client connected:", clients);
 
   ws.on("message", (message) => {
-    const data = message.toString();
+    let data;
 
-    // Récupérer stockage
-    if (data === "GET_STORAGE") {
-      ws.send(JSON.stringify(storage));
+    try {
+      data = JSON.parse(message.toString());
+    } catch {
+      data = message.toString();
+    }
+
+    // ====== SCAN ENVOIE ======
+    if (data.type === "scan") {
+      if (queue.length < MAX_QUEUE) {
+        queue.push(data.data);
+      }
       return;
     }
 
-    store(data);
-    broadcast(data, ws);
+    // ====== MAIN RECUPERE ======
+    if (data === "GET" || data.type === "get") {
+      if (queue.length > 0) {
+        const result = queue.shift(); // retire le premier
+        ws.send(JSON.stringify({
+          type: "result",
+          data: result
+        }));
+      } else {
+        ws.send(JSON.stringify({
+          type: "empty"
+        }));
+      }
+    }
   });
 
-  ws.on("close", () => {
-    clients--;
-    console.log("Client disconnected:", clients);
-  });
 });
 
 server.listen(PORT, () => {
-  console.log("Server running on port", PORT);
+  console.log("Queue WebSocket running on port", PORT);
 });
