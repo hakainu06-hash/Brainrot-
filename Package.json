@@ -1,16 +1,11 @@
 {
-  "name": "railway-websocket-server",
+  "name": "railway-ws",
   "version": "1.0.0",
-  "description": "Simple high-frequency WebSocket server ready for Railway",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
-  "engines": {
-    "node": "20.x"
-  },
   "dependencies": {
-    "express": "^4.19.2",
     "ws": "^8.16.0"
   }
 }
