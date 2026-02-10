@@ -1,21 +1,21 @@
 import { WebSocketServer } from "ws";
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3000;
 
 const wss = new WebSocketServer({ port: PORT });
 
-console.log("WebSocket server running on port", PORT);
+console.log("WebSocket running on port", PORT);
 
 wss.on("connection", (ws) => {
   console.log("Client connecté");
 
-  ws.on("message", (message) => {
-    console.log("Message reçu :", message.toString());
+  ws.on("message", (msg) => {
+    console.log("Reçu :", msg.toString());
 
     // Broadcast à tous les clients
     wss.clients.forEach((client) => {
       if (client.readyState === ws.OPEN) {
-        client.send(message.toString());
+        client.send(msg.toString());
       }
     });
   });
