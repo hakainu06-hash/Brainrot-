@@ -1,9 +1,8 @@
 {
-  "type": "module",
-  "scripts": {
-    "start": "node index.js"
-  },
+  "name": "roblox-ws",
+  "version": "1.0.0",
+  "main": "index.js",
   "dependencies": {
-    "ws": "^8.16.0"
+    "ws": "^8.0.0"
   }
 }
