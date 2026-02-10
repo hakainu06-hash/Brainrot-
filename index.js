@@ -1,59 +1,26 @@
-const http = require("http");
-const WebSocket = require("ws");
+import { WebSocketServer } from "ws";
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
-// File de messages (queue)
-let queue = [];
-const MAX_QUEUE = 50000; // sécurité mémoire
+const wss = new WebSocketServer({ port: PORT });
 
-const server = http.createServer((req, res) => {
-  res.writeHead(200);
-  res.end("WS Queue running");
-});
-
-const wss = new WebSocket.Server({
-  server,
-  perMessageDeflate: false
-});
+console.log("WebSocket server running on port", PORT);
 
 wss.on("connection", (ws) => {
+  console.log("Client connecté");
 
   ws.on("message", (message) => {
-    let data;
+    console.log("Message reçu :", message.toString());
 
-    try {
-      data = JSON.parse(message.toString());
-    } catch {
-      data = message.toString();
-    }
-
-    // ====== SCAN ENVOIE ======
-    if (data.type === "scan") {
-      if (queue.length < MAX_QUEUE) {
-        queue.push(data.data);
+    // Broadcast à tous les clients
+    wss.clients.forEach((client) => {
+      if (client.readyState === ws.OPEN) {
+        client.send(message.toString());
       }
-      return;
-    }
-
-    // ====== MAIN RECUPERE ======
-    if (data === "GET" || data.type === "get") {
-      if (queue.length > 0) {
-        const result = queue.shift(); // retire le premier
-        ws.send(JSON.stringify({
-          type: "result",
-          data: result
-        }));
-      } else {
-        ws.send(JSON.stringify({
-          type: "empty"
-        }));
-      }
-    }
+    });
   });
 
-});
-
-server.listen(PORT, () => {
-  console.log("Queue WebSocket running on port", PORT);
+  ws.on("close", () => {
+    console.log("Client déconnecté");
+  });
 });
