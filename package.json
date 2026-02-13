@@ -1,8 +1,19 @@
 {
-  "name": "roblox-ws",
+  "name": "discord-auto-joiner-ws",
   "version": "1.0.0",
+  "description": "Auto joiner Discord avec WebSocket",
   "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "scan": "node scan.js"
+  },
+  "keywords": ["discord", "auto-joiner", "websocket"],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
-    "ws": "^8.0.0"
+    "discord.js-selfbot-v13": "^2.3.84",
+    "express": "^4.18.2",
+    "ws": "^8.14.2",
+    "chalk": "^4.1.2"
   }
 }
